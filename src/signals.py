@@ -119,7 +119,63 @@ def detect_eod_drop(daily_bar: Optional[pd.Series], threshold_pct: float) -> Sig
 
 
 # ---------------------------------------------------------------------------
-# 4) Break below N-day moving average
+# 4) Surge ABOVE N-day moving average (tiered)
+# ---------------------------------------------------------------------------
+def detect_ma_surge(daily: pd.DataFrame, period: int,
+                    tier_thresholds_pct) -> SignalResult:
+    """
+    Fires when the most recent close is >= X% ABOVE the N-day MA.
+    `tier_thresholds_pct` is a list like [10, 15, 20]. The HIGHEST
+    threshold that has been crossed is reported.
+    """
+    if daily is None or len(daily) < period + 1:
+        return SignalResult("ma_surge", False,
+                            summary=f"insufficient history for {period}-DMA")
+
+    if not tier_thresholds_pct:
+        return SignalResult("ma_surge", False, summary="no surge thresholds configured")
+
+    closes = daily["close"]
+    ma = closes.rolling(period).mean()
+    last_close = float(closes.iloc[-1])
+    last_ma = float(ma.iloc[-1])
+    if pd.isna(last_ma) or last_ma <= 0:
+        return SignalResult("ma_surge", False, summary=f"{period}-DMA not yet available")
+
+    delta_pct = (last_close - last_ma) / last_ma * 100.0
+    sorted_tiers = sorted(float(t) for t in tier_thresholds_pct)
+    highest_hit = None
+    for t in sorted_tiers:
+        if delta_pct >= t:
+            highest_hit = t
+
+    triggered = highest_hit is not None
+    if triggered:
+        summary = (
+            f"Close ${last_close:.2f} is +{delta_pct:.2f}% above {period}-DMA "
+            f"${last_ma:.2f} — crossed +{highest_hit:.0f}% tier"
+        )
+    else:
+        summary = (
+            f"Close ${last_close:.2f} is +{delta_pct:.2f}% above {period}-DMA "
+            f"${last_ma:.2f} (below +{sorted_tiers[0]:.0f}% threshold)"
+        )
+
+    return SignalResult(
+        "ma_surge",
+        triggered=triggered,
+        summary=summary,
+        detail=f"Tier thresholds: {sorted_tiers}",
+        metrics={
+            "close": last_close, "ma": last_ma, "delta_pct": delta_pct,
+            "period": period, "highest_tier_hit": highest_hit,
+            "tiers": sorted_tiers,
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# 5) Break below N-day moving average
 # ---------------------------------------------------------------------------
 def detect_ma_break(daily: pd.DataFrame, period: int,
                     confirmation_pct: float = 1.0) -> SignalResult:
@@ -155,6 +211,39 @@ def detect_ma_break(daily: pd.DataFrame, period: int,
             "period": period, "fresh_break": fresh_break,
         },
     )
+
+
+# ---------------------------------------------------------------------------
+# Index-watchlist evaluator — same 4 base signals + tiered surge above MA
+# ---------------------------------------------------------------------------
+def evaluate_index(daily: pd.DataFrame,
+                   today_open: Optional[float],
+                   current_price: Optional[float],
+                   common_cfg: dict,
+                   surge_thresholds_pct) -> List[SignalResult]:
+    """
+    Rules for index watchlist tickers:
+        - Surge above MA at configured tiers (report highest tier crossed)
+        - Break below MA ("dropped below its 50-day MA")
+        - Intraday drop >= X% from today's open (default 2%)
+        - EOD drop >= X% from today's open   (default 2%)
+        - N consecutive bearish daily closes (default 3)
+    """
+    if daily is None or daily.empty:
+        return [SignalResult("data_missing", False, "no market data")]
+
+    period = int(common_cfg["ma_period"])
+    drop_pct = float(common_cfg["intraday_drop_pct"])
+    streak_n = int(common_cfg["bearish_streak_length"])
+    last_completed_bar = daily.iloc[-1]
+
+    return [
+        detect_ma_surge(daily, period, surge_thresholds_pct),
+        detect_ma_break(daily, period, 0.0),   # any close below MA counts
+        detect_intraday_drop(today_open, current_price, drop_pct),
+        detect_eod_drop(last_completed_bar, drop_pct),
+        detect_bearish_streak(daily, streak_n),
+    ]
 
 
 # ---------------------------------------------------------------------------
