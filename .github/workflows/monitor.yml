@@ -1,1 +1,68 @@
+name: Portfolio Monitor
 
+# ─────────────────────────────────────────────────────────────
+# Schedule (UTC — GitHub Actions cron does NOT support timezones)
+#
+#   US market close sweep       21:00 UTC = 17:00 ET (post-close)  Mon–Fri
+#   HK market close sweep       08:30 UTC = 16:30 HKT (post-close) Mon–Fri
+#   JP market close sweep       06:30 UTC = 15:30 JST (post-close) Mon–Fri
+#   Intraday US pulse           15:00, 18:00 UTC (Mon–Fri)
+#
+# Also runnable on-demand via the "Run workflow" button.
+# ─────────────────────────────────────────────────────────────
+on:
+  schedule:
+    - cron: "30 6 * * 1-5"     # JP close
+    - cron: "30 8 * * 1-5"     # HK close
+    - cron: "0 15 * * 1-5"     # US mid-day pulse
+    - cron: "0 18 * * 1-5"     # US afternoon pulse
+    - cron: "0 21 * * 1-5"     # US close sweep
+  workflow_dispatch:            # Manual trigger from the Actions tab
+
+# Grant the automatic GITHUB_TOKEN permission to open Issues + commit logs.
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: portfolio-monitor
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run monitor
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python src/monitor.py --config config.yaml
+
+      - name: Commit updated log
+        if: always()
+        run: |
+          if [[ -n "$(git status --porcelain signals.log)" ]]; then
+            git config user.name  "portfolio-monitor-bot"
+            git config user.email "actions@github.com"
+            git add signals.log
+            git commit -m "chore: update signals.log [skip ci]"
+            git push
+          else
+            echo "No log changes to commit."
+          fi
