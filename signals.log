@@ -49,3 +49,24 @@
 2026-07-23 16:58:13 | INFO    | monitor | Summary: 2 triggered / 4 healthy / 6 total
 2026-07-23 16:58:14 | INFO    | monitor.alerts | Added comment to existing issue #1 (dedupe hit).
 2026-07-23 16:58:14 | INFO    | monitor | Monitor run complete.
+2026-07-23 17:33:24 | INFO    | monitor | ======================================================================
+2026-07-23 17:33:24 | INFO    | monitor | Portfolio monitor starting — 2026-07-23T17:33:24.956885+00:00
+2026-07-23 17:33:24 | INFO    | monitor | ======================================================================
+2026-07-23 17:33:24 | INFO    | monitor.portfolio | Loaded 6 unique tickers from portfolio.csv
+2026-07-23 17:33:25 | INFO    | monitor.data | Downloading daily bars for 9 tickers (attempt 1)...
+2026-07-23 17:33:27 | INFO    | monitor.data | Normalised bars for 9/9 tickers
+2026-07-23 17:33:27 | INFO    | monitor.data | Intraday snapshots populated for 9/9 tickers
+2026-07-23 17:33:27 | INFO    | monitor |   [IDX] ^GSPC       ok         lastC=7498.96  todayO=7418.29  now=7407.07  signals=[-]
+2026-07-23 17:33:27 | INFO    | monitor |   [IDX] ^IXIC       TRIGGERED  lastC=25690.90  todayO=25240.65  now=25144.11  signals=[ma_break]
+2026-07-23 17:33:27 | INFO    | monitor |   [IDX] SMH         TRIGGERED  lastC=586.91  todayO=577.20  now=579.27  signals=[ma_break]
+2026-07-23 17:33:27 | INFO    | monitor |   AAPL        ok         lastC=325.89  todayO=321.73  now=320.87  signals=[-]
+2026-07-23 17:33:27 | INFO    | monitor |   MSFT        TRIGGERED  lastC=390.34  todayO=389.96  now=381.43  signals=[ma_break]
+2026-07-23 17:33:27 | INFO    | monitor |   NVDA        ok         lastC=212.06  todayO=209.40  now=209.65  signals=[-]
+2026-07-23 17:33:27 | INFO    | monitor |   0700.HK     TRIGGERED  lastC=440.60  todayO=440.20  now=445.20  signals=[ma_break]
+2026-07-23 17:33:27 | INFO    | monitor |   7203.T      ok         lastC=2939.00  todayO=2926.00  now=2929.50  signals=[-]
+2026-07-23 17:33:27 | INFO    | monitor |   SPY         ok         lastC=747.41  todayO=739.37  now=738.27  signals=[-]
+2026-07-23 17:33:27 | INFO    | monitor | ----------------------------------------------------------------------
+2026-07-23 17:33:27 | INFO    | monitor | Portfolio summary: 2 triggered / 4 healthy / 6 total
+2026-07-23 17:33:27 | INFO    | monitor | Index summary:     2 triggered / 1 healthy / 3 total
+2026-07-23 17:33:28 | INFO    | monitor.alerts | Opened issue #2
+2026-07-23 17:33:28 | INFO    | monitor | Monitor run complete.
