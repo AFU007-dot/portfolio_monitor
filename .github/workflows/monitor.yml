@@ -54,6 +54,8 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python src/monitor.py --config config.yaml
 
+      
+
       - name: Commit updated log
         if: always()
         run: |
@@ -62,7 +64,9 @@ jobs:
             git config user.email "actions@github.com"
             git add signals.log
             git commit -m "chore: update signals.log [skip ci]"
-            git push
+            # Pull latest with rebase to avoid collisions with previous runs
+            git pull --rebase origin main
+            git push origin main
           else
             echo "No log changes to commit."
           fi
