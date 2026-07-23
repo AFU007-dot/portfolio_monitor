@@ -1,0 +1,40 @@
+# ============================================================
+# Portfolio Monitor Configuration
+# ============================================================
+# ADVISORY ONLY. Never places orders.
+# ============================================================
+
+portfolio:
+  csv_path: "portfolio.csv"
+
+signals:
+  # Consecutive bearish daily candles (close < open)
+  bearish_streak_length: 3
+
+  # 10% daily drop trigger — applied to BOTH:
+  #   * intraday_drop  (current price vs today's open, during market hours)
+  #   * eod_drop       (today's close vs today's open, post-close)
+  daily_drop_pct: 10.0
+
+  # Break below N-day moving average
+  ma_period: 50
+  ma_confirmation_pct: 1.0
+
+  # How much daily history to pull (>= ma_period + buffer)
+  history_days: 120
+
+  # Set false to skip the intraday check (e.g. if you only want post-close alerts).
+  check_intraday: true
+
+data:
+  source: "yfinance"
+  request_timeout_seconds: 20
+  max_retries: 3
+  retry_backoff_seconds: 2
+
+alerts:
+  github_issues:
+    enabled: true
+    labels: ["portfolio-alert", "auto-generated"]
+    dedupe_by_signal: true
+  log_file: "signals.log"
