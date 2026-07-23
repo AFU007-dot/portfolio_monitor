@@ -45,23 +45,29 @@ class GitHubIssuesAlerter:
 
     # ------------------------------------------------------------------
     def dispatch(self, triggers: List[dict], healthy: List[str],
-                 as_of: Optional[datetime] = None) -> None:
-        if not triggers:
+                 as_of: Optional[datetime] = None,
+                 index_triggers: Optional[List[dict]] = None,
+                 index_healthy: Optional[List[str]] = None) -> None:
+        index_triggers = index_triggers or []
+        index_healthy = index_healthy or []
+
+        if not triggers and not index_triggers:
             logger.info("No triggered signals — no issue created.")
             return
 
         if not self.enabled:
-            logger.warning("Would have dispatched %d triggers, but alerter disabled.",
-                           len(triggers))
-            self._log_console(triggers, healthy)
+            logger.warning("Would have dispatched %d portfolio + %d index triggers, but alerter disabled.",
+                           len(triggers), len(index_triggers))
+            self._log_console(triggers, healthy, index_triggers, index_healthy)
             return
 
         as_of = as_of or datetime.now(timezone.utc)
-        body = self._build_body(triggers, healthy, as_of)
-        title = self._build_title(triggers, as_of)
+        body = self._build_body(triggers, healthy, as_of,
+                                 index_triggers, index_healthy)
+        title = self._build_title(triggers, as_of, index_triggers)
 
         if self.dedupe:
-            existing = self._find_dedupe_target(triggers)
+            existing = self._find_dedupe_target(triggers + index_triggers)
             if existing:
                 self._add_comment(existing, body)
                 return
@@ -70,20 +76,32 @@ class GitHubIssuesAlerter:
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _build_title(triggers: List[dict], as_of: datetime) -> str:
-        tickers_hit = sorted({t["ticker"] for t in triggers})
+    def _build_title(triggers: List[dict], as_of: datetime,
+                     index_triggers: Optional[List[dict]] = None) -> str:
+        index_triggers = index_triggers or []
+        all_tickers = sorted({t["ticker"] for t in triggers + index_triggers})
+        n_pos = len({t["ticker"] for t in triggers})
+        n_idx = len({t["ticker"] for t in index_triggers})
+
+        parts = []
+        if n_pos:
+            parts.append(f"{n_pos} position{'s' if n_pos != 1 else ''}")
+        if n_idx:
+            parts.append(f"{n_idx} index/ETF")
+
         return (
             f"Portfolio Alert — {as_of.strftime('%Y-%m-%d %H:%M UTC')} — "
-            f"{len(tickers_hit)} position{'s' if len(tickers_hit) != 1 else ''}: "
-            f"{', '.join(tickers_hit[:5])}"
-            + (" …" if len(tickers_hit) > 5 else "")
+            f"{' + '.join(parts)}: "
+            f"{', '.join(all_tickers[:5])}"
+            + (" …" if len(all_tickers) > 5 else "")
         )
 
     def _build_body(self, triggers: List[dict], healthy: List[str],
-                    as_of: datetime) -> str:
-        by_ticker: Dict[str, List[dict]] = {}
-        for t in triggers:
-            by_ticker.setdefault(t["ticker"], []).append(t)
+                    as_of: datetime,
+                    index_triggers: Optional[List[dict]] = None,
+                    index_healthy: Optional[List[str]] = None) -> str:
+        index_triggers = index_triggers or []
+        index_healthy = index_healthy or []
 
         lines = [
             f"**As of:** {as_of.strftime('%Y-%m-%d %H:%M:%S UTC')}",
@@ -91,31 +109,62 @@ class GitHubIssuesAlerter:
             "> ⚠️ **Advisory alert only — no order has been placed.**",
             "> Review each position and manually execute in TWS / IBKR Client Portal.",
             "",
-            f"## {len(by_ticker)} position(s) need review",
-            "",
         ]
 
-        for ticker in sorted(by_ticker):
-            lines.append(f"### {ticker}")
-            for sig in by_ticker[ticker]:
-                lines.append(f"- **{_signal_label(sig['signal_key'])}** — {sig['summary']}")
-                if sig.get("detail"):
-                    lines.append("  ```")
-                    for row in sig["detail"].splitlines():
-                        lines.append(f"  {row}")
-                    lines.append("  ```")
+        # ---- Index / market-wide section (always first for macro context) ----
+        if index_triggers:
+            by_idx: Dict[str, List[dict]] = {}
+            for t in index_triggers:
+                by_idx.setdefault(t["ticker"], []).append(t)
+            lines.append(f"## 🌐 Market indices — {len(by_idx)} triggered")
             lines.append("")
+            for ticker in sorted(by_idx):
+                first = by_idx[ticker][0]
+                label = first.get("label") or ticker
+                header = f"{ticker}" if label == ticker else f"{ticker} — {label}"
+                lines.append(f"### {header}")
+                for sig in by_idx[ticker]:
+                    lines.append(f"- **{_signal_label(sig['signal_key'])}** — {sig['summary']}")
+                    if sig.get("detail"):
+                        lines.append("  ```")
+                        for row in sig["detail"].splitlines():
+                            lines.append(f"  {row}")
+                        lines.append("  ```")
+                lines.append("")
 
-        if healthy:
-            lines.append(f"## ✅ {len(healthy)} healthy position(s)")
-            lines.append(", ".join(sorted(healthy)))
+        # ---- Portfolio positions section ----
+        by_ticker: Dict[str, List[dict]] = {}
+        for t in triggers:
+            by_ticker.setdefault(t["ticker"], []).append(t)
+
+        if by_ticker:
+            lines.append(f"## 💼 Portfolio positions — {len(by_ticker)} triggered")
+            lines.append("")
+            for ticker in sorted(by_ticker):
+                lines.append(f"### {ticker}")
+                for sig in by_ticker[ticker]:
+                    lines.append(f"- **{_signal_label(sig['signal_key'])}** — {sig['summary']}")
+                    if sig.get("detail"):
+                        lines.append("  ```")
+                        for row in sig["detail"].splitlines():
+                            lines.append(f"  {row}")
+                        lines.append("  ```")
+                lines.append("")
+
+        # ---- Healthy summary ----
+        if healthy or index_healthy:
+            lines.append("## ✅ Healthy")
+            if index_healthy:
+                lines.append(f"- **Indices:** {', '.join(index_healthy)}")
+            if healthy:
+                lines.append(f"- **Positions:** {', '.join(sorted(healthy))}")
             lines.append("")
 
         signature = {
             "as_of": as_of.isoformat(),
             "triggers": [
                 {"ticker": t["ticker"], "signal_key": t["signal_key"]}
-                for t in triggers
+                for t in (triggers + index_triggers)
             ],
         }
         lines.append("<!-- monitor-signature: " + json.dumps(signature) + " -->")
@@ -178,18 +227,27 @@ class GitHubIssuesAlerter:
 
     # ------------------------------------------------------------------
     @staticmethod
-    def _log_console(triggers: List[dict], healthy: List[str]) -> None:
+    def _log_console(triggers: List[dict], healthy: List[str],
+                     index_triggers: Optional[List[dict]] = None,
+                     index_healthy: Optional[List[str]] = None) -> None:
+        index_triggers = index_triggers or []
+        index_healthy = index_healthy or []
         logger.warning("--- DIGEST (console fallback) ---")
+        for t in index_triggers:
+            logger.warning("  [IDX %s] %s — %s", t["ticker"], t["signal_key"], t["summary"])
         for t in triggers:
             logger.warning("  [%s] %s — %s", t["ticker"], t["signal_key"], t["summary"])
         if healthy:
-            logger.warning("  Healthy: %s", ", ".join(healthy))
+            logger.warning("  Healthy positions: %s", ", ".join(healthy))
+        if index_healthy:
+            logger.warning("  Healthy indices:   %s", ", ".join(index_healthy))
 
 
 def _signal_label(key: str) -> str:
     return {
-        "bearish_streak": "🔻 Bearish streak",
-        "intraday_drop":  "⚡ Intraday -10% from today's open",
-        "eod_drop":       "📉 Daily candle closed -10% from open",
+        "bearish_streak": "🔻 Bearish streak (3 red daily candles)",
+        "intraday_drop":  "⚡ Intraday drop from today's open",
+        "eod_drop":       "📉 Daily candle closed below today's open",
         "ma_break":       "⚠️ Below 50-day moving average",
+        "ma_surge":       "🚀 Surge above 50-day moving average",
     }.get(key, key)
