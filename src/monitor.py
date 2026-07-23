@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from portfolio import load_portfolio                    # noqa: E402
 from data import fetch_daily_bars, fetch_intraday_snapshot   # noqa: E402
-from signals import evaluate_position                   # noqa: E402
+from signals import evaluate_position, evaluate_index   # noqa: E402
 from alerts import GitHubIssuesAlerter                  # noqa: E402
 
 
@@ -58,11 +58,19 @@ def run(cfg_path: str) -> int:
     log.info("=" * 70)
 
     positions = load_portfolio(cfg["portfolio"]["csv_path"])
-    if not positions:
-        log.warning("No valid positions found. Exiting.")
+
+    # Index watchlist — always evaluated, independent of portfolio.csv
+    idx_cfg = cfg.get("index_watchlist", {}) or {}
+    idx_enabled = bool(idx_cfg.get("enabled"))
+    idx_entries = idx_cfg.get("tickers", []) if idx_enabled else []
+    idx_symbols = [e["symbol"] for e in idx_entries]
+
+    if not positions and not idx_symbols:
+        log.warning("No portfolio positions and no index watchlist. Exiting.")
         return 0
 
-    tickers = [p.ticker for p in positions]
+    portfolio_tickers = [p.ticker for p in positions]
+    tickers = list(dict.fromkeys(portfolio_tickers + idx_symbols))  # de-dup, preserve order
 
     # Historical daily bars (for streak, EOD-drop, MA-break)
     daily_bars = fetch_daily_bars(
@@ -75,9 +83,46 @@ def run(cfg_path: str) -> int:
     # Intraday snapshot (for intraday-drop)
     snapshots = fetch_intraday_snapshot(tickers) if cfg["signals"].get("check_intraday", True) else {}
 
-    triggers = []
-    healthy = []
+    triggers = []       # portfolio-position triggers
+    healthy = []        # healthy portfolio positions
+    idx_triggers = []   # index watchlist triggers
+    idx_healthy = []    # healthy indices
 
+    # ------------------------------------------------------------------
+    # 1) Index watchlist evaluation
+    # ------------------------------------------------------------------
+    common_cfg = idx_cfg.get("common", {}) if idx_enabled else {}
+    for entry in idx_entries:
+        sym = entry["symbol"]
+        label = entry.get("label") or sym
+        daily = daily_bars.get(sym)
+        today_open, current_price = snapshots.get(sym, (None, None))
+        results = evaluate_index(daily, today_open, current_price,
+                                 common_cfg, entry.get("surge_thresholds_pct", []))
+        fired = [r for r in results if r.triggered]
+
+        current = float(daily["close"].iloc[-1]) if daily is not None and not daily.empty else float("nan")
+        status = "TRIGGERED" if fired else "ok"
+        log.info("  [IDX] %-10s  %-9s  lastC=%.2f  todayO=%s  now=%s  signals=[%s]",
+                 sym, status, current,
+                 f"{today_open:.2f}" if today_open else "  n/a",
+                 f"{current_price:.2f}" if current_price else "  n/a",
+                 ", ".join(r.signal_key for r in fired) or "-")
+
+        if fired:
+            for r in fired:
+                idx_triggers.append({
+                    "ticker": sym, "label": label,
+                    "signal_key": r.signal_key,
+                    "summary": r.summary, "detail": r.detail,
+                    "metrics": r.metrics,
+                })
+        else:
+            idx_healthy.append(f"{sym} ({label})" if label != sym else sym)
+
+    # ------------------------------------------------------------------
+    # 2) Portfolio-position evaluation
+    # ------------------------------------------------------------------
     for pos in positions:
         daily = daily_bars.get(pos.ticker)
         today_open, current_price = snapshots.get(pos.ticker, (None, None))
@@ -106,11 +151,13 @@ def run(cfg_path: str) -> int:
             healthy.append(pos.ticker)
 
     log.info("-" * 70)
-    log.info("Summary: %d triggered / %d healthy / %d total",
+    log.info("Portfolio summary: %d triggered / %d healthy / %d total",
              len({t['ticker'] for t in triggers}), len(healthy), len(positions))
+    log.info("Index summary:     %d triggered / %d healthy / %d total",
+             len({t['ticker'] for t in idx_triggers}), len(idx_healthy), len(idx_entries))
 
     alerter = GitHubIssuesAlerter(cfg)
-    alerter.dispatch(triggers, healthy)
+    alerter.dispatch(triggers, healthy, index_triggers=idx_triggers, index_healthy=idx_healthy)
     log.info("Monitor run complete.")
     return 0
 
