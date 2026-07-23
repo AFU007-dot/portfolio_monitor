@@ -103,3 +103,36 @@
 2026-07-23 17:41:56 | INFO    | monitor | Index summary:     2 triggered / 1 healthy / 3 total
 2026-07-23 17:41:56 | INFO    | monitor.alerts | Opened issue #3
 2026-07-23 17:41:56 | INFO    | monitor | Monitor run complete.
+2026-07-23 19:34:49 | INFO    | monitor | ======================================================================
+2026-07-23 19:34:49 | INFO    | monitor | Portfolio monitor starting — 2026-07-23T19:34:49.637310+00:00
+2026-07-23 19:34:49 | INFO    | monitor | ======================================================================
+2026-07-23 19:34:49 | INFO    | monitor.portfolio | Loaded 18 unique tickers from portfolio.csv
+2026-07-23 19:34:49 | INFO    | monitor.data | Downloading daily bars for 21 tickers (attempt 1)...
+2026-07-23 19:34:52 | INFO    | monitor.data | Normalised bars for 21/21 tickers
+2026-07-23 19:34:52 | INFO    | monitor.data | Intraday snapshots populated for 21/21 tickers
+2026-07-23 19:34:52 | INFO    | monitor |   [IDX] ^GSPC       ok         lastC=7498.96  todayO=7418.29  now=7396.43  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   [IDX] ^IXIC       TRIGGERED  lastC=25690.90  todayO=25240.65  now=25083.54  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   [IDX] SMH         TRIGGERED  lastC=586.91  todayO=577.20  now=577.89  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   2802.HK     TRIGGERED  lastC=7.29  todayO=7.29  now=7.29  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   3145.HK     ok         lastC=14.64  todayO=14.66  now=14.68  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   3416.HK     TRIGGERED  lastC=8.63  todayO=8.64  now=8.64  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   3419.HK     TRIGGERED  lastC=9.69  todayO=9.70  now=9.75  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   AMD         ok         lastC=552.33  todayO=544.74  now=539.84  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   BE          TRIGGERED  lastC=218.22  todayO=215.02  now=220.22  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   CAT         TRIGGERED  lastC=889.31  todayO=886.56  now=896.56  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   GEV         TRIGGERED  lastC=985.03  todayO=981.31  now=1040.07  signals=[bearish_streak, ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   GLD         TRIGGERED  lastC=379.12  todayO=372.36  now=371.28  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   GLW         TRIGGERED  lastC=154.06  todayO=152.26  now=156.48  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   INTC        TRIGGERED  lastC=102.62  todayO=101.00  now=100.39  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   MU          ok         lastC=959.48  todayO=975.23  now=988.37  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   QQQ         TRIGGERED  lastC=705.35  todayO=694.64  now=690.89  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   SNDK        TRIGGERED  lastC=1599.27  todayO=1565.68  now=1625.77  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   SOXL        TRIGGERED  lastC=160.99  todayO=152.16  now=154.98  signals=[ma_break]
+2026-07-23 19:34:52 | INFO    | monitor |   VOO         ok         lastC=687.03  todayO=679.55  now=677.64  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   VXUS        ok         lastC=84.46  todayO=83.49  now=83.50  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor |   XLE         ok         lastC=59.20  todayO=60.22  now=59.46  signals=[-]
+2026-07-23 19:34:52 | INFO    | monitor | ----------------------------------------------------------------------
+2026-07-23 19:34:52 | INFO    | monitor | Portfolio summary: 12 triggered / 6 healthy / 18 total
+2026-07-23 19:34:52 | INFO    | monitor | Index summary:     2 triggered / 1 healthy / 3 total
+2026-07-23 19:34:53 | INFO    | monitor.alerts | Added comment to existing issue #3 (dedupe hit).
+2026-07-23 19:34:53 | INFO    | monitor | Monitor run complete.
