@@ -334,3 +334,36 @@
 2026-07-24 13:02:42 | INFO    | monitor | Index summary:     3 triggered / 0 healthy / 3 total
 2026-07-24 13:02:43 | INFO    | monitor.alerts | Added comment to existing issue #4 (dedupe hit).
 2026-07-24 13:02:43 | INFO    | monitor | Monitor run complete.
+2026-07-24 13:27:43 | INFO    | monitor | ======================================================================
+2026-07-24 13:27:43 | INFO    | monitor | Portfolio monitor starting — 2026-07-24T13:27:43.746397+00:00
+2026-07-24 13:27:43 | INFO    | monitor | ======================================================================
+2026-07-24 13:27:43 | INFO    | monitor.portfolio | Loaded 18 unique tickers from portfolio.csv
+2026-07-24 13:27:44 | INFO    | monitor.data | Downloading daily bars for 21 tickers (attempt 1)...
+2026-07-24 13:27:45 | INFO    | monitor.data | Normalised bars for 21/21 tickers
+2026-07-24 13:27:45 | INFO    | monitor.data | Intraday snapshots populated for 21/21 tickers
+2026-07-24 13:27:45 | INFO    | monitor |   [IDX] ^GSPC       TRIGGERED  lastC=7408.30  todayO=7418.29  now=7408.18  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   [IDX] ^IXIC       TRIGGERED  lastC=25137.69  todayO=25240.65  now=25138.57  signals=[ma_break, bearish_streak]
+2026-07-24 13:27:45 | INFO    | monitor |   [IDX] SMH         TRIGGERED  lastC=580.17  todayO=577.20  now=580.17  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   2802.HK     TRIGGERED  lastC=7.29  todayO=7.29  now=7.29  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   3145.HK     ok         lastC=14.68  todayO=14.68  now=14.67  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   3416.HK     TRIGGERED  lastC=8.64  todayO=8.64  now=8.64  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   3419.HK     ok         lastC=9.75  todayO=9.70  now=9.75  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   AMD         ok         lastC=539.69  todayO=544.74  now=539.80  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   BE          TRIGGERED  lastC=217.30  todayO=215.02  now=217.32  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   CAT         TRIGGERED  lastC=894.54  todayO=886.56  now=893.44  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   GEV         ok         lastC=1031.19  todayO=981.31  now=1032.62  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   GLD         TRIGGERED  lastC=371.52  todayO=372.36  now=371.54  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   GLW         TRIGGERED  lastC=156.06  todayO=152.26  now=156.15  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   INTC        TRIGGERED  lastC=100.23  todayO=101.00  now=100.23  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   MU          ok         lastC=990.21  todayO=975.23  now=990.24  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   QQQ         TRIGGERED  lastC=691.96  todayO=694.64  now=691.92  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   SNDK        TRIGGERED  lastC=1610.33  todayO=1565.68  now=1611.64  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   SOXL        TRIGGERED  lastC=157.50  todayO=152.16  now=157.22  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   VOO         ok         lastC=678.61  todayO=679.55  now=678.42  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor |   VXUS        TRIGGERED  lastC=83.62  todayO=83.49  now=83.60  signals=[ma_break]
+2026-07-24 13:27:45 | INFO    | monitor |   XLE         ok         lastC=59.38  todayO=60.22  now=59.40  signals=[-]
+2026-07-24 13:27:45 | INFO    | monitor | ----------------------------------------------------------------------
+2026-07-24 13:27:45 | INFO    | monitor | Portfolio summary: 11 triggered / 7 healthy / 18 total
+2026-07-24 13:27:45 | INFO    | monitor | Index summary:     3 triggered / 0 healthy / 3 total
+2026-07-24 13:27:46 | INFO    | monitor.alerts | Added comment to existing issue #4 (dedupe hit).
+2026-07-24 13:27:46 | INFO    | monitor | Monitor run complete.
