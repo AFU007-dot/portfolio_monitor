@@ -15,7 +15,7 @@ signals:
   daily_drop_pct: 10.0           # 10% daily drop (intraday + EOD, vs today's open)
   ma_period: 50                  # Break below N-day moving average
   ma_confirmation_pct: 1.0
-  history_days: 120
+  history_days: 380              # ~52 weeks of trading days + buffer for holidays
   check_intraday: true
 
 # ------------------------------------------------------------
@@ -43,6 +43,15 @@ index_watchlist:
     - symbol: "SMH"
       label: "Semiconductor ETF (SMH)"
       surge_thresholds_pct: [10.0, 15.0, 20.0]
+
+# ------------------------------------------------------------
+# Fibonacci retracement (context only — does not trigger alerts)
+# ------------------------------------------------------------
+fibonacci:
+  enabled: true
+  lookback_trading_days: 252         # ~52 weeks
+  levels_pct: [0.0, 23.6, 38.2, 50.0, 61.8, 78.6, 100.0]
+  at_level_proximity_pct: 0.5        # "At a Fib level" if within 0.5% of any level
 
 data:
   source: "yfinance"
