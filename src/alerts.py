@@ -245,7 +245,7 @@ class GitHubIssuesAlerter:
 
 def _signal_label(key: str) -> str:
     return {
-        "bearish_streak": "🔻 Bearish streak (3 red daily candles)",
+        "bearish_streak": "🔻 Bearish streak (2 red candles, lower closes)",
         "intraday_drop":  "⚡ Intraday drop from today's open",
         "eod_drop":       "📉 Daily candle closed below today's open",
         "ma_break":       "⚠️ Below 50-day moving average",
