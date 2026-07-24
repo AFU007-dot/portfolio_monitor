@@ -19,9 +19,11 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
+
+from fibonacci import format_fib_context_lines, FibContext
 
 logger = logging.getLogger("monitor.alerts")
 
@@ -47,9 +49,11 @@ class GitHubIssuesAlerter:
     def dispatch(self, triggers: List[dict], healthy: List[str],
                  as_of: Optional[datetime] = None,
                  index_triggers: Optional[List[dict]] = None,
-                 index_healthy: Optional[List[str]] = None) -> None:
+                 index_healthy: Optional[List[str]] = None,
+                 fib_by_ticker: Optional[Dict[str, Any]] = None) -> None:
         index_triggers = index_triggers or []
         index_healthy = index_healthy or []
+        fib_by_ticker = fib_by_ticker or {}
 
         if not triggers and not index_triggers:
             logger.info("No triggered signals — no issue created.")
@@ -63,7 +67,8 @@ class GitHubIssuesAlerter:
 
         as_of = as_of or datetime.now(timezone.utc)
         body = self._build_body(triggers, healthy, as_of,
-                                 index_triggers, index_healthy)
+                                 index_triggers, index_healthy,
+                                 fib_by_ticker)
         title = self._build_title(triggers, as_of, index_triggers)
 
         if self.dedupe:
@@ -99,9 +104,11 @@ class GitHubIssuesAlerter:
     def _build_body(self, triggers: List[dict], healthy: List[str],
                     as_of: datetime,
                     index_triggers: Optional[List[dict]] = None,
-                    index_healthy: Optional[List[str]] = None) -> str:
+                    index_healthy: Optional[List[str]] = None,
+                    fib_by_ticker: Optional[Dict[str, Any]] = None) -> str:
         index_triggers = index_triggers or []
         index_healthy = index_healthy or []
+        fib_by_ticker = fib_by_ticker or {}
 
         lines = [
             f"**As of:** {as_of.strftime('%Y-%m-%d %H:%M:%S UTC')}",
@@ -130,6 +137,7 @@ class GitHubIssuesAlerter:
                         for row in sig["detail"].splitlines():
                             lines.append(f"  {row}")
                         lines.append("  ```")
+                lines.extend(_render_fib_block(fib_by_ticker.get(ticker)))
                 lines.append("")
 
         # ---- Portfolio positions section ----
@@ -149,7 +157,32 @@ class GitHubIssuesAlerter:
                         for row in sig["detail"].splitlines():
                             lines.append(f"  {row}")
                         lines.append("  ```")
+                lines.extend(_render_fib_block(fib_by_ticker.get(ticker)))
                 lines.append("")
+
+        # ---- "At a Fib level" bonus section (healthy tickers within proximity) ----
+        triggered_tickers = set(by_ticker.keys()) | {t["ticker"] for t in index_triggers}
+        at_fib_hits = []
+        for tk, ctx in (fib_by_ticker or {}).items():
+            if tk in triggered_tickers:
+                continue  # already reported in main sections
+            if ctx is None or not getattr(ctx, "ok", False):
+                continue
+            if getattr(ctx, "at_level", None) is not None:
+                at_fib_hits.append((tk, ctx))
+        if at_fib_hits:
+            lines.append(f"## 🎯 At a Fib level — {len(at_fib_hits)} healthy ticker(s) near a retracement")
+            lines.append("")
+            for tk, ctx in sorted(at_fib_hits):
+                lvl = ctx.at_level
+                dist = ctx.at_level_distance_pct or 0.0
+                direction = "below" if dist > 0 else "above"
+                lines.append(
+                    f"- **{tk}** — ${ctx.current_price:.2f} is {abs(dist):.2f}% {direction} "
+                    f"the {lvl.pct:.1f}% Fib @ ${lvl.price:.2f} "
+                    f"({ctx.trend}, 52wk range ${ctx.swing_low:.2f}–${ctx.swing_high:.2f})"
+                )
+            lines.append("")
 
         # ---- Healthy summary ----
         if healthy or index_healthy:
@@ -241,6 +274,15 @@ class GitHubIssuesAlerter:
             logger.warning("  Healthy positions: %s", ", ".join(healthy))
         if index_healthy:
             logger.warning("  Healthy indices:   %s", ", ".join(index_healthy))
+
+
+def _render_fib_block(ctx) -> List[str]:
+    """Render Fibonacci context under a triggered ticker, or an empty list if none."""
+    if ctx is None:
+        return []
+    if not isinstance(ctx, FibContext):
+        return []
+    return format_fib_context_lines(ctx)
 
 
 def _signal_label(key: str) -> str:
