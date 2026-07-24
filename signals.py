@@ -28,6 +28,18 @@ class SignalResult:
 # 1) Bearish streak (completed daily bars)
 # ---------------------------------------------------------------------------
 def detect_bearish_streak(daily: pd.DataFrame, required: int) -> SignalResult:
+    """
+    Fires when the most recent `required` daily candles are all bearish
+    (close < open) AND each candle's close is strictly lower than the
+    previous candle's close (progressive lower closes).
+
+    Example (required=2):
+      Day -2: O=100  C=98   (red)                    ✓
+      Day -1: O=99   C=96   (red, and 96 < 98)       ✓ → fires
+
+      Day -2: O=100  C=96   (red)
+      Day -1: O=99   C=97   (red, but 97 > 96)       ✗ → does NOT fire
+    """
     if daily is None or len(daily) < required:
         return SignalResult(
             "bearish_streak", False,
@@ -35,23 +47,49 @@ def detect_bearish_streak(daily: pd.DataFrame, required: int) -> SignalResult:
         )
 
     tail = daily.tail(required)
-    all_bearish = bool((tail["close"] < tail["open"]).all())
-    streak = _trailing_streak(daily)
+    opens = tail["open"].tolist()
+    closes = tail["close"].tolist()
+
+    all_bearish = all(c < o for o, c in zip(opens, closes))
+    # Strict lower-close continuity across the window
+    lower_closes = all(closes[i] < closes[i - 1] for i in range(1, len(closes)))
+
+    triggered = bool(all_bearish and lower_closes)
+    streak = _trailing_streak(daily)  # informational only
 
     rows = [
         f"  {str(d)[:10]} O={o:>10.2f}  C={c:>10.2f}  Δ={c - o:+.2f}"
-        for d, o, c in zip(tail.index, tail["open"], tail["close"])
+        for d, o, c in zip(tail.index, opens, closes)
     ]
+
+    if triggered:
+        summary = (
+            f"{required} consecutive red candles with lower closes "
+            f"({closes[0]:.2f} → {closes[-1]:.2f})"
+        )
+    elif all_bearish and not lower_closes:
+        summary = (
+            f"{required} consecutive red candles but closes not progressively lower "
+            f"({closes[0]:.2f} → {closes[-1]:.2f})"
+        )
+    else:
+        summary = f"{streak} consecutive bearish daily closes (need {required})"
+
     return SignalResult(
         "bearish_streak",
-        triggered=all_bearish,
-        summary=f"{streak} consecutive bearish daily closes (need {required})",
+        triggered=triggered,
+        summary=summary,
         detail="\n".join(rows),
-        metrics={"streak_length": streak, "required": required},
+        metrics={
+            "streak_length": streak, "required": required,
+            "all_bearish": all_bearish, "lower_closes": lower_closes,
+            "first_close": closes[0], "last_close": closes[-1],
+        },
     )
 
 
 def _trailing_streak(daily: pd.DataFrame) -> int:
+    """Count of trailing consecutive red daily candles (close < open). Informational."""
     count = 0
     for _, row in daily.iloc[::-1].iterrows():
         if row["close"] < row["open"]:
