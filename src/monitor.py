@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from portfolio import load_portfolio                    # noqa: E402
 from data import fetch_daily_bars, fetch_intraday_snapshot   # noqa: E402
 from signals import evaluate_position, evaluate_index   # noqa: E402
+from fibonacci import compute_fib_context               # noqa: E402
 from alerts import GitHubIssuesAlerter                  # noqa: E402
 
 
@@ -87,6 +88,27 @@ def run(cfg_path: str) -> int:
     healthy = []        # healthy portfolio positions
     idx_triggers = []   # index watchlist triggers
     idx_healthy = []    # healthy indices
+    fib_by_ticker = {}  # ticker -> FibContext (used for alert body context)
+
+    # ------------------------------------------------------------------
+    # Fibonacci retracement context (informational — all tickers)
+    # ------------------------------------------------------------------
+    fib_cfg = cfg.get("fibonacci", {}) or {}
+    fib_enabled = bool(fib_cfg.get("enabled", True))
+    if fib_enabled:
+        for tk in tickers:
+            daily = daily_bars.get(tk)
+            _, current_price = snapshots.get(tk, (None, None))
+            if current_price is None and daily is not None and not daily.empty:
+                current_price = float(daily["close"].iloc[-1])
+            ctx = compute_fib_context(
+                daily,
+                current_price,
+                lookback_trading_days=int(fib_cfg.get("lookback_trading_days", 252)),
+                levels_pct=fib_cfg.get("levels_pct"),
+                at_level_proximity_pct=float(fib_cfg.get("at_level_proximity_pct", 0.5)),
+            )
+            fib_by_ticker[tk] = ctx
 
     # ------------------------------------------------------------------
     # 1) Index watchlist evaluation
@@ -157,7 +179,9 @@ def run(cfg_path: str) -> int:
              len({t['ticker'] for t in idx_triggers}), len(idx_healthy), len(idx_entries))
 
     alerter = GitHubIssuesAlerter(cfg)
-    alerter.dispatch(triggers, healthy, index_triggers=idx_triggers, index_healthy=idx_healthy)
+    alerter.dispatch(triggers, healthy,
+                     index_triggers=idx_triggers, index_healthy=idx_healthy,
+                     fib_by_ticker=fib_by_ticker)
     log.info("Monitor run complete.")
     return 0
 
