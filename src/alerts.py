@@ -184,14 +184,36 @@ class GitHubIssuesAlerter:
                 )
             lines.append("")
 
-        # ---- Healthy summary ----
-        if healthy or index_healthy:
-            lines.append("## ✅ Healthy")
-            if index_healthy:
-                lines.append(f"- **Indices:** {', '.join(index_healthy)}")
-            if healthy:
-                lines.append(f"- **Positions:** {', '.join(sorted(healthy))}")
+        # ---- Healthy section — full Fib context per ticker ----
+        # Index healthy list may contain labels in "SYMBOL (Label)" format; extract just symbols
+        def _extract_symbol(entry: str) -> str:
+            return entry.split(" (", 1)[0]
+
+        healthy_symbols = sorted(healthy)
+        healthy_idx_symbols = [_extract_symbol(e) for e in sorted(index_healthy)]
+
+        if healthy_symbols or healthy_idx_symbols:
+            lines.append(
+                f"## ✅ Healthy — {len(healthy_symbols)} position(s), "
+                f"{len(healthy_idx_symbols)} index/ETF"
+            )
             lines.append("")
+
+            # Healthy indices first (macro context before individual holdings)
+            for tk in healthy_idx_symbols:
+                ctx = fib_by_ticker.get(tk)
+                cp_str = f" — ${ctx.current_price:.2f}" if ctx and ctx.ok else ""
+                lines.append(f"### {tk}{cp_str}")
+                lines.extend(_render_fib_block(ctx))
+                lines.append("")
+
+            # Healthy portfolio positions
+            for tk in healthy_symbols:
+                ctx = fib_by_ticker.get(tk)
+                cp_str = f" — ${ctx.current_price:.2f}" if ctx and ctx.ok else ""
+                lines.append(f"### {tk}{cp_str}")
+                lines.extend(_render_fib_block(ctx))
+                lines.append("")
 
         signature = {
             "as_of": as_of.isoformat(),
