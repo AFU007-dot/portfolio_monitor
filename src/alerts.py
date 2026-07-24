@@ -19,6 +19,7 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -110,8 +111,13 @@ class GitHubIssuesAlerter:
         index_healthy = index_healthy or []
         fib_by_ticker = fib_by_ticker or {}
 
+        # Show timestamp in UTC + New York + Hong Kong for at-a-glance context
+        ny = as_of.astimezone(ZoneInfo("America/New_York"))
+        hk = as_of.astimezone(ZoneInfo("Asia/Hong_Kong"))
         lines = [
-            f"**As of:** {as_of.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+            f"**As of:** {as_of.strftime('%Y-%m-%d %H:%M:%S UTC')}  \n"
+            f"     · NY: {ny.strftime('%Y-%m-%d %H:%M %Z')}  \n"
+            f"     · HK: {hk.strftime('%Y-%m-%d %H:%M %Z')}",
             "",
             "> ⚠️ **Advisory alert only — no order has been placed.**",
             "> Review each position and manually execute in TWS / IBKR Client Portal.",
