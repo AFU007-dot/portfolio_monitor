@@ -11,7 +11,7 @@ portfolio:
 # Portfolio-position signals (applied to every ticker in the CSV)
 # ------------------------------------------------------------
 signals:
-  bearish_streak_length: 3       # N consecutive bearish daily closes
+  bearish_streak_length: 2       # N consecutive bearish daily closes (each must close lower than previous)
   daily_drop_pct: 10.0           # 10% daily drop (intraday + EOD, vs today's open)
   ma_period: 50                  # Break below N-day moving average
   ma_confirmation_pct: 1.0
@@ -26,7 +26,7 @@ index_watchlist:
   enabled: true
   common:
     ma_period: 50                # N-day moving average for all indices
-    bearish_streak_length: 3     # 3 consecutive bearish daily closes
+    bearish_streak_length: 2     # N consecutive bearish daily closes (each must close lower than previous)
     intraday_drop_pct: 2.0       # -2% from today's open (intraday + EOD)
 
   # Per-ticker overrides. Each entry:
